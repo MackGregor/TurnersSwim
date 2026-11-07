@@ -909,10 +909,10 @@ function cleanMeet(meet) {
 
 function renderMakosGoals(entries) {
   const makos = entries.filter(e => e.team === 'Makos');
-  // Current Makos season: Fall 2026 onward (Sep 2026+)
-  const currentSeason = makos.filter(e => e.date >= '2026-09-01' && !e.entered);
+  // Current Makos season: Sep 2026 – May 2027
+  const currentSeason = makos.filter(e => e.date >= '2026-09-01' && e.date <= '2027-05-31' && !e.entered);
   const makosMeets = new Set(currentSeason.map(e => e.date + e.meet)).size;
-  const makosStrokes = new Set(currentSeason.filter(e => !e.dq && e.time != null).map(e => e.stroke));
+  const makosStrokes = new Set(currentSeason.filter(e => e.dist === 50 && e.unit === 'Y' && !e.dq && e.time != null).map(e => e.stroke));
 
   // Goal: at least two 100-yard stroke events
   const hundredYardEvents = currentSeason.filter(e => e.dist === 100 && e.unit === 'Y' && !e.dq && e.time != null);
