@@ -525,6 +525,10 @@ const DATA = {
     { stroke:'Butterfly', dist:50, unit:'Y', date:'2025-12-14', meet:'2025 Mako Holiday Invitational',                 meetType:'Makos', team:'Makos', time:null, dq:true  },
     // Breaststroke – Makos
     { stroke:'Breaststroke', dist:50, unit:'Y', date:'2026-09-26', meet:'Mako Fall Invitational 2026',                  meetType:'Makos', team:'Makos', time:49.04, dq:false, place:'32nd of 133' },
+    // Mako Gobble Gobble Invitational (Sat Nov 7, 2026)
+    { stroke:'Butterfly', dist:50, unit:'Y', date:'2026-11-07', meet:'Mako Gobble Gobble Invitational 2026', meetType:'Makos', team:'Makos', time:50.16, dq:false, place:'11th', eventNo:2, heat:2, lane:3 },
+    { stroke:'Freestyle', dist:100, unit:'Y', date:'2026-11-07', meet:'Mako Gobble Gobble Invitational 2026', meetType:'Makos', team:'Makos', time:90.94, dq:false, place:'13th', eventNo:8, heat:2, lane:1 },
+    { stroke:'Backstroke', dist:100, unit:'Y', date:'2026-11-07', meet:'Mako Gobble Gobble Invitational 2026', meetType:'Makos', team:'Makos', time:107.56, dq:false, place:'8th', eventNo:20, heat:1, lane:4 },
   ],
   leona: [
     { stroke:'Freestyle',    dist:25, unit:'M', date:'2025-07-07', meet:'B-Swim – Fairfax at Truro',        meetType:'B',  team:'Frogs', time:35.22, dq:false, place:'2nd' },
@@ -667,7 +671,9 @@ function renderPanel(sw) {
   const totalEntries = entries.filter(e => !e.dq && !e.entered && e.time != null).length;
   const prs = countPRs(entries);
   const upcomingCount = countEntered(entries);
-  const meets = new Set(entries.map(e => e.date + e.meet)).size;
+  const meets = new Set(entries.filter(e => !e.entered).map(e => e.date + e.meet)).size;
+  const upcoming = entries.filter(e => e.entered);
+  const upcomingLabel = upcoming.length ? `${fmtDate(upcoming[0].date)} @ ${cleanMeet(upcoming[0].meet).replace('Mako ','').replace(' Invitational','')}` : '';
 
   let html = `<div class="swimmer-panel ${activeSwimmer === sw.id ? 'active' : ''}" id="panel-${sw.id}">`;
 
@@ -686,7 +692,7 @@ function renderPanel(sw) {
     <div class="stat-card"><div class="stat-label">Meets</div><div class="stat-value">${meets}</div></div>
     <div class="stat-card"><div class="stat-label">Times logged</div><div class="stat-value">${totalEntries}</div></div>
     <div class="stat-card"><div class="stat-label">Personal bests</div><div class="stat-value">${prs}</div></div>
-    ${upcomingCount > 0 ? `<div class="stat-card"><div class="stat-label">This Saturday</div><div class="stat-value" style="color:var(--entered-text)">${upcomingCount}</div><div class="stat-sub">Jun 20 @ Parklawn</div></div>` : ''}
+    ${upcomingCount > 0 ? `<div class="stat-card"><div class="stat-label">Upcoming events</div><div class="stat-value" style="color:var(--entered-text)">${upcomingCount}</div><div class="stat-sub">${upcomingLabel}</div></div>` : ''}
   </div>`;
 
   // Strokes
@@ -729,11 +735,10 @@ function renderPanel(sw) {
 
       html += `<div class="event-card ${isOpen ? 'open-' + sw.id : ''}"
                     onclick="toggleDrawer('${sw.id}', '${dkKey}')">
-        <div class="ev-dist-tag">${dist}${unit}${hasEntered ? ' <span class="badge badge-entered" style="font-size:9px;padding:1px 5px;">Sat</span>' : ''}</div>`;
+        <div class="ev-dist-tag">${dist}${unit}${hasEntered ? ' <span class="badge badge-entered" style="font-size:9px;padding:1px 5px;">Upcoming</span>' : ''}</div>`;
 
       const agedOut = (sw.id === 'winnie' && arr[0].dist === 25 && arr[0].unit === 'M' && stroke !== 'Butterfly') ||
-                      (sw.id === 'sander' && arr[0].dist === 25 && arr[0].unit === 'M' && stroke !== 'Butterfly') ||
-                      (sw.id === 'sander' && arr[0].unit === 'Y');
+                      (sw.id === 'sander' && arr[0].dist === 25 && arr[0].unit === 'M' && stroke !== 'Butterfly');
 
       if (best) {
         // Calculate improvement from second-best valid time to PR
@@ -766,7 +771,7 @@ function renderPanel(sw) {
       } else if (hasDQ && !hasEntered) {
         html += `<div class="ev-pr dq-only">DQ only</div><div class="ev-count">${arr.length} attempt${arr.length !== 1 ? 's' : ''}</div>`;
       } else if (hasEntered && !best) {
-        html += `<div class="ev-pr empty" style="color:var(--entered-text);font-family:'DM Sans',sans-serif;font-size:13px;">Entered · Jun 20</div><div class="ev-count">No prior times</div>`;      } else {
+        html += `<div class="ev-pr empty" style="color:var(--entered-text);font-family:'DM Sans',sans-serif;font-size:13px;">Entered · ${fmtDate(arr.find(e => e.entered).date)}</div><div class="ev-count">${arr.filter(e => e.entered).map(e => `Heat ${e.heat} · Lane ${e.lane}`).join(' | ')}${hasDQ ? ' · prior DQ' : ' · No prior times'}</div>`;      } else {
         html += `<div class="ev-pr empty">No times yet</div>`;
       }
 
@@ -817,7 +822,7 @@ function renderPanel(sw) {
           : `<span class="reg">▲ ${diff.toFixed(2)}s</span>`;
         const isPR = best && !e.dq && !e.entered && e.time === best.time;
         const timeDisplay = e.entered
-          ? `<span class="badge badge-entered">Entered</span>`
+          ? `<span class="badge badge-entered">Entered</span>${e.heat ? `<span style="font-size:11px;color:var(--entered-text);margin-left:4px;white-space:nowrap;">Event #${e.eventNo} · Heat ${e.heat} · Lane ${e.lane}</span>` : ''}`
           : e.dq
           ? `<span class="badge badge-dq">DQ</span>${e.dqReason ? `<span style="font-size:11px;color:var(--dq-text);margin-left:4px;">${e.dqReason}</span>` : ''}`
           : `${fmtTime(e.time)}${isPR ? '<span class="badge badge-pr">PR</span>' : ''}`;
@@ -896,6 +901,7 @@ function cleanMeet(meet) {
     '2025 Mako Holiday Invitational':                     'Mako Holiday Invitational',
     'Mako Polar Plunge 2026':                             'Mako Polar Plunge',
     'Mako Fall Invitational 2026':                        'Mako Fall Invitational',
+    'Mako Gobble Gobble Invitational 2026':               'Mako Gobble Gobble Invitational',
     'B-Swim – Fairfax at Truro':                          'Fairfax vs. Truro · Away',
   };
   return map[meet] || meet;
@@ -904,7 +910,7 @@ function cleanMeet(meet) {
 function renderMakosGoals(entries) {
   const makos = entries.filter(e => e.team === 'Makos');
   // Current Makos season: Fall 2026 onward (Sep 2026+)
-  const currentSeason = makos.filter(e => e.date >= '2026-09-01');
+  const currentSeason = makos.filter(e => e.date >= '2026-09-01' && !e.entered);
   const makosMeets = new Set(currentSeason.map(e => e.date + e.meet)).size;
   const makosStrokes = new Set(currentSeason.filter(e => !e.dq && e.time != null).map(e => e.stroke));
 
@@ -915,13 +921,19 @@ function renderMakosGoals(entries) {
   // Goal: 200 freestyle
   const twoHundredFree = currentSeason.filter(e => e.stroke === 'Freestyle' && e.dist === 200 && !e.dq && e.time != null);
 
+  const sched = makos.filter(e => e.entered);
+  const schedStrokes = new Set(sched.map(e => e.stroke + e.dist));
+  const upMeetNote = sched.length ? ` · next: ${fmtDate(sched[0].date)} (${sched.length} events entered)` : '';
+  const upStroke = s => schedStrokes.has(s + '50') ? ' (entered Nov 7)' : '';
+  const up100 = sched.filter(e => e.dist === 100).map(e => e.stroke).join(', ');
+
   const goals = [
     { label: 'Swim 50Y of all four strokes legally', done: ['Freestyle','Backstroke','Breaststroke','Butterfly'].filter(s => makosStrokes.has(s)).length === 4,
-      detail: ['Freestyle','Backstroke','Breaststroke','Butterfly'].map(s => makosStrokes.has(s) ? `✓ ${s}` : `○ ${s}`).join(' · ') },
+      detail: ['Freestyle','Backstroke','Breaststroke','Butterfly'].map(s => makosStrokes.has(s) ? `✓ ${s}` : `○ ${s}${upStroke(s)}`).join(' · ') },
     { label: 'Compete in at least 2 Makos meets', done: makosMeets >= 2,
-      detail: `${makosMeets} meet${makosMeets !== 1 ? 's' : ''} attended` },
+      detail: `${makosMeets} meet${makosMeets !== 1 ? 's' : ''} attended${upMeetNote}` },
     { label: 'Race at least two 100Y stroke events', done: hundredStrokes.size >= 2,
-      detail: hundredStrokes.size > 0 ? `${hundredStrokes.size} of 2 — ${[...hundredStrokes].join(', ')}` : '0 of 2' },
+      detail: hundredStrokes.size > 0 ? `${hundredStrokes.size} of 2 — ${[...hundredStrokes].join(', ')}` : `0 of 2${up100 ? ' · entered Nov 7: ' + up100 : ''}` },
     { label: 'Compete in the 200Y Freestyle', done: twoHundredFree.length > 0,
       detail: twoHundredFree.length > 0 ? `Best: ${fmtTime(Math.min(...twoHundredFree.map(e => e.time)))}` : 'Not yet' },
   ];
